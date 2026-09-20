@@ -1,6 +1,6 @@
 name: ez_list_view
 description: A crash-safe ListView that automatically handles unbounded height constraints in Columns and Rows.
-version: 0.0.4
+version: 0.0.5
 homepage: https://github.com/Evgenii-Zinner/ez-list-view
 repository: https://github.com/Evgenii-Zinner/ez-list-view
 issue_tracker: https://github.com/Evgenii-Zinner/ez-list-view/issues

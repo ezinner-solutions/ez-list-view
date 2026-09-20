@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('EzListView Tests - Comprehensive Coverage', () {
+  group('EzListView', () {
     testWidgets('renders normally with bounded constraints',
         (WidgetTester tester) async {
       await tester.pumpWidget(
@@ -215,7 +215,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: Center(
-              child: Container(
+              child: SizedBox(
                 height: 300,
                 width: 300,
                 child: EzListView.builder(
@@ -282,6 +282,265 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(_hasRedBorder(tester), isFalse);
+    });
+
+    testWidgets(
+        'EzListView default constructor renders children normally when bounded',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 400,
+              width: 400,
+              child: EzListView(
+                children: const [
+                  Text('Child 1'),
+                  Text('Child 2'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Child 1'), findsOneWidget);
+      expect(find.text('Child 2'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      expect(_hasRedBorder(tester), isFalse);
+    });
+
+    testWidgets(
+        'EzListView default constructor handles unbounded Column gracefully',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                EzListView(
+                  children: const [
+                    Text('Child 1'),
+                    Text('Child 2'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNotNull);
+      expect(_hasRedBorder(tester), isTrue);
+      expect(find.text('Child 1'), findsOneWidget);
+    });
+
+    testWidgets('EzListView.separated renders items and separators',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 400,
+              width: 400,
+              child: EzListView.separated(
+                itemCount: 3,
+                itemBuilder: (context, index) => Text('Item $index'),
+                separatorBuilder: (context, index) => Text('Separator $index'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Item 0'), findsOneWidget);
+      expect(find.text('Separator 0'), findsOneWidget);
+      expect(find.text('Item 1'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      expect(_hasRedBorder(tester), isFalse);
+    });
+
+    testWidgets('EzListView.separated handles unbounded Column gracefully',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                EzListView.separated(
+                  itemCount: 3,
+                  itemBuilder: (context, index) => Text('Item $index'),
+                  separatorBuilder: (context, index) => const Divider(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNotNull);
+      expect(_hasRedBorder(tester), isTrue);
+      expect(find.text('Item 0'), findsOneWidget);
+    });
+
+    testWidgets('EzListView.custom renders with custom childrenDelegate',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 400,
+              width: 400,
+              child: EzListView.custom(
+                childrenDelegate: SliverChildListDelegate(
+                  const [
+                    Text('Custom 1'),
+                    Text('Custom 2'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Custom 1'), findsOneWidget);
+      expect(find.text('Custom 2'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      expect(_hasRedBorder(tester), isFalse);
+    });
+
+    testWidgets('EzListView.custom handles unbounded Column gracefully',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                EzListView.custom(
+                  childrenDelegate: SliverChildListDelegate(
+                    const [
+                      Text('Custom 1'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNotNull);
+      expect(_hasRedBorder(tester), isTrue);
+      expect(find.text('Custom 1'), findsOneWidget);
+    });
+
+    testWidgets('handles horizontal scrollDirection in unbounded Row',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Row(
+              children: [
+                EzListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: 5,
+                  itemBuilder: (context, index) => SizedBox(
+                    width: 60,
+                    child: Text('H$index'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNotNull);
+      expect(_hasRedBorder(tester), isTrue);
+      expect(find.text('H0'), findsOneWidget);
+    });
+
+    testWidgets('respects custom fallbackHeight', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                EzListView.builder(
+                  fallbackHeight: 222,
+                  itemCount: 5,
+                  itemBuilder: (context, index) => Text('Item $index'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNotNull);
+      final sizedBoxes = tester.widgetList<SizedBox>(find.byType(SizedBox));
+      final matchingBox = sizedBoxes.any((box) => box.height == 222);
+      expect(matchingBox, isTrue);
+    });
+
+    testWidgets('respects showDebugIndicator: false in debug mode',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                EzListView.builder(
+                  showDebugIndicator: false,
+                  itemCount: 5,
+                  itemBuilder: (context, index) => Text('Item $index'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNotNull);
+      expect(_hasRedBorder(tester), isFalse);
+    });
+
+    testWidgets(
+        'triggers onUnboundedDetected callback with culprit information',
+        (WidgetTester tester) async {
+      bool detectedWidth = false;
+      bool detectedHeight = false;
+      String? detectedCulprit;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                EzListView.builder(
+                  itemCount: 5,
+                  itemBuilder: (context, index) => Text('Item $index'),
+                  onUnboundedDetected: ({
+                    required bool isWidthUnbounded,
+                    required bool isHeightUnbounded,
+                    required String? culprit,
+                  }) {
+                    detectedWidth = isWidthUnbounded;
+                    detectedHeight = isHeightUnbounded;
+                    detectedCulprit = culprit;
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNotNull);
+      expect(detectedHeight, isTrue);
+      expect(detectedWidth, isFalse);
+      expect(detectedCulprit, 'Column');
     });
   });
 }

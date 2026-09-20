@@ -1,38 +1,34 @@
-# EZ List View
+# EzListView
 
-A **crash-safe, self-aware** replacement for `ListView.builder` that prevents layout errors in `Column`, `Row`, `Flex`, and nested scroll views.
+A defensive, self-aware drop-in replacement for Flutter's `ListView` that automatically prevents layout crashes from unbounded constraints in `Column`, `Row`, `Flex`, and nested scroll views.
 
 ## 🛑 The Problem
 
-Flutter's `ListView` tries to expand to fill all available space in its scroll direction. When placed inside a parent with **unbounded constraints**, it breaks the layout.
+In Flutter, placing a `ListView` inside an unbounded parent immediately throws a fatal runtime exception:
+* `"Vertical viewport was given unbounded height"`
+* `"Horizontal viewport was given unbounded width"`
 
-Common scenarios that cause this crash:
-*   Placing a vertical list inside a **`Column`**.
-*   Placing a horizontal list inside a **`Row`**.
-*   Nesting it inside another **`ListView`**, **`CustomScrollView`**, or **`SingleChildScrollView`** (NestedListView scenario).
-*   Using it inside a **`Flex`** or unconstrained **`Card`**.
+Common culprits include:
+* Vertical `ListView` inside a `Column` or `Flex` without `Expanded` or `Flexible`
+* Horizontal `ListView` inside a `Row`
+* Nesting a `ListView` directly inside another scroll view (`CustomScrollView`, `SingleChildScrollView`) without `shrinkWrap: true` or explicit height
+* Unconstrained widgets like `Card` or non-expanded `Stack` children
 
-Instead of a simple error, this often breaks the build process, causing the UI to vanish and spamming the console with:
-> "Vertical viewport was given unbounded height."
-> "RenderBox was not laid out: RenderViewport... NEEDS-PAINT NEEDS-COMPOSITING-BITS-UPDATE"
-> "Failed assertion: ... 'hasSize'"
+Instead of a helpful warning, the entire widget subtree fails to render, showing the red error screen.
 
-## ✅ The EZ Solution
+## ✅ The EzListView Solution
 
-`EzListView` is a defensive wrapper that detects these unbounded constraints before they cause damage:
+`EzListView` intercepts unbounded constraints before Flutter's viewport layout throws an exception:
 
-*   **Auto-Detection:** Instantly identifies if it's in a `Column`, `Row`, or other unbounded parent.
-*   **Crash Prevention:** Automatically applies a safe, bounded size to ensure the widget renders visible content instead of breaking.
-*   **Developer Feedback:**
-    *   **Debug Mode:** Displays a **red border** and logs a clear warning identifying the exact parent causing the issue (e.g., "Unbounded height detected in Column").
-    *   **Release Mode:** Silently fixes the layout so your users never see a broken screen.
-
-## ✨ Features
-
-*   **Drop-in Replacement:** Same API as `ListView.builder`.
-*   **Omni-Directional Safety:** Handles both unbounded height (Vertical) and width (Horizontal).
-*   **SEO & Discoverability:** Solves issues with `Column`, `Row`, `NestedListView`, `Flex`, and `Card`.
-*   **Zero Dependencies:** Lightweight and pure Flutter.
+* **Crash Prevention:** Detects unbounded dimensions along the scroll or cross axis and applies safe, responsive fallback dimensions.
+* **Developer Feedback:**
+  * **Debug Mode:** Displays a red border around the fallback container and reports a structured `FlutterError` pointing out the exact parent culprit (e.g. `Column`, `Row`) with actionable fix instructions.
+  * **Release Mode:** Silently applies the fallback layout so your users never experience a crash or red screen.
+* **100% Drop-in Parity:** Supports all four standard `ListView` constructors:
+  * `EzListView(...)` (children list)
+  * `EzListView.builder(...)`
+  * `EzListView.separated(...)`
+  * `EzListView.custom(...)`
 
 ## 📦 Installation
 
@@ -42,41 +38,99 @@ flutter pub add ez_list_view
 
 ## 🚀 Usage
 
-Simply replace `ListView.builder` with `EzListView.builder`.
+### 1. Drop-in Replacement inside a Column
 
-This normally crashes in a Column, but is safe with EzListView:
+Instead of crashing, `EzListView` safely displays your items and shows a red debug outline with console diagnostics:
+
 ```dart
 Column(
   children: [
-    Text('Header'),
+    const Text('Header'),
+    // In standard Flutter, ListView.builder crashes here.
+    // EzListView prevents the crash gracefully!
     EzListView.builder(
       itemCount: 20,
-      itemBuilder: (context, index) => ListTile(title: Text('Item $index')),
-    ),
-  ],
-)
-```
-
-### The "Correct" Fix
-While `EzListView` prevents the crash, the best practice is to provide constraints. `EzListView` helps you find where this is needed:
-
-```dart
-Column(
-  children: [
-    Text('Header'),
-    Expanded(
-      child: EzListView.builder(
-        // ...
+      itemBuilder: (context, index) => ListTile(
+        title: Text('Item $index'),
       ),
     ),
   ],
 )
 ```
 
+### 2. Default Children Constructor
+
+```dart
+EzListView(
+  children: const [
+    ListTile(title: Text('Profile')),
+    ListTile(title: Text('Settings')),
+    ListTile(title: Text('Logout')),
+  ],
+)
+```
+
+### 3. Separated Constructor
+
+```dart
+EzListView.separated(
+  itemCount: 10,
+  itemBuilder: (context, index) => ListTile(title: Text('Message $index')),
+  separatorBuilder: (context, index) => const Divider(),
+)
+```
+
+### 4. Custom Fallback Dimensions & Telemetry
+
+```dart
+EzListView.builder(
+  itemCount: 25,
+  itemBuilder: (context, index) => Text('Row $index'),
+  fallbackHeight: 300, // Custom height when unbounded
+  showDebugIndicator: false, // Hide the red border in debug mode
+  onUnboundedDetected: ({
+    required bool isWidthUnbounded,
+    required bool isHeightUnbounded,
+    required String? culprit,
+  }) {
+    // Send telemetry or log to your analytics service
+    print('Unbounded layout caught in $culprit: width=$isWidthUnbounded, height=$isHeightUnbounded');
+  },
+)
+```
+
+## 💡 The Permanent Fix
+
+While `EzListView` prevents application crashes and provides graceful fallbacks, best practice in Flutter is to explicitly constrain scrollables. When `EzListView` flags an issue in debug mode, apply one of the following permanent fixes:
+
+```dart
+// Option A: Wrap in Expanded or Flexible inside Column/Row
+Column(
+  children: [
+    Expanded(
+      child: EzListView.builder(...),
+    ),
+  ],
+)
+
+// Option B: Set explicit dimensions
+SizedBox(
+  height: 300,
+  child: EzListView.builder(...),
+)
+
+// Option C: Use shrinkWrap if the list has a small, finite number of children
+EzListView.builder(
+  shrinkWrap: true,
+  physics: const NeverScrollableScrollPhysics(),
+  ...
+)
+```
+
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to open an issue or submit a pull request on [GitHub](https://github.com/Evgenii-Zinner/ez_list_view).
+Contributions, issues, and feature suggestions are always welcome! Check out the [GitHub repository](https://github.com/Evgenii-Zinner/ez-list-view).
 
 ## 📜 License
 
-MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
