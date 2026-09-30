@@ -4,7 +4,6 @@ A defensive, crash-safe drop-in replacement for Flutter's `ListView` that automa
 
 [![pub package](https://img.shields.io/pub/v/ez_list_view.svg)](https://pub.dev/packages/ez_list_view)
 [![likes](https://img.shields.io/pub/likes/ez_list_view.svg)](https://pub.dev/packages/ez_list_view)
-[![popularity](https://img.shields.io/pub/popularity/ez_list_view.svg)](https://pub.dev/packages/ez_list_view)
 [![pub points](https://img.shields.io/pub/points/ez_list_view.svg)](https://pub.dev/packages/ez_list_view)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
